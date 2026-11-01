@@ -107,7 +107,7 @@ def run_bytes(cmd):
 
 
 def ramdisk_types(info):
-    return re.findall(r"type:\s*(0x[0-9a-f]+)", info)
+    return dict(re.findall(r"(vendor_ramdisk\d+): \{\s*size:[^}]*?type:\s*(0x[0-9a-f]+)", info, re.S))
 
 
 def vendor_owned_files(root):
@@ -185,7 +185,9 @@ def main():
         stock = extract_ramdisks(stock_vb)
         info = run([args.unpack_bootimg, "--boot_img", os.path.join(out, "vendor_boot.img"), "--format=info", "--out", os.path.join(tmp, "vbinfo")])
         types = ramdisk_types(info)
-        check("vendor_boot has platform + recovery ramdisks", sorted(types) == ["0x1", "0x2"], ",".join(types))
+        check("vendor_boot has platform + recovery ramdisks", sorted(types.values()) == ["0x1", "0x2"], ",".join(f"{k}={v}" for k, v in sorted(types.items())))
+        platform_roots = [built[n] for n, t in types.items() if t == "0x1" and n in built]
+        recovery_roots = [built[n] for n, t in types.items() if t == "0x2" and n in built]
 
         merged = {}
         for name, root in built.items():
@@ -195,9 +197,9 @@ def main():
         changed = sorted(k for k in expected if k in merged and merged[k] != expected[k])
         check("vendor ramdisk vendor files = stock", not missing and not changed, f"{len(expected)} files, missing {len(missing)}, changed {len(changed)}" + (f" e.g. {(missing + changed)[0]}" if missing or changed else ""))
 
-        recovery_roots = [root for name, root in built.items() if os.path.isfile(os.path.join(root, "system", "bin", "recovery"))]
-        check("recovery ramdisk has /system/bin/recovery", bool(recovery_roots), str(len(recovery_roots)))
+        check("recovery ramdisk has /system/bin/recovery", any(os.path.isfile(os.path.join(r, "system", "bin", "recovery")) for r in recovery_roots), f"{len(recovery_roots)} recovery fragment(s)")
         check("recovery ramdisk has fastbootd", any(os.path.isfile(os.path.join(r, "system", "bin", "fastbootd")) for r in recovery_roots), "system/bin/fastbootd")
+        check("platform ramdisk has no recovery binary", bool(platform_roots) and not any(os.path.isfile(os.path.join(r, "system", "bin", "recovery")) for r in platform_roots), f"{len(platform_roots)} platform fragment(s)")
 
     vbmeta = avb_info(args.avbtool, os.path.join(out, "vbmeta.img"))
     chains = dict(re.findall(r"Partition Name:\s+(\S+)\s+Rollback Index Location:\s+(\d+)", vbmeta))
