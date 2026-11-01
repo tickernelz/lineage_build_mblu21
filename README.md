@@ -13,23 +13,21 @@ Local manifest, build script and static image checks for the unofficial LineageO
 
 ## Build
 
-Requirements measured on the build host: about 300 GB free disk for source, `out/` and ccache, 28 GB RAM plus 32 GB swap at `-j12`.
+Requirements: about 300 GB free disk for source and `out/`. On the 28 GB RAM build host, the Soong analysis phase alone reached about 75 GB of RAM plus swap; give the build at least 64 GB of swap. A full local build has not completed yet.
 
 ```
 mkdir lineage-24.0 && cd lineage-24.0
 repo init -u https://github.com/LineageOS/android.git -b lineage-24.0 --git-lfs --depth=1
 git clone --depth 1 https://github.com/tickernelz/lineage_build_mblu21 .repo/local_manifests
 repo sync -c --no-tags -j8
-ANDROID_ROOT=$PWD /path/to/lineage_build_mblu21/build.sh
+ANDROID_ROOT=$PWD .repo/local_manifests/build.sh
 ```
 
 GitHub-hosted runners (4 vCPU, 16 GB RAM, 14 GB disk) cannot hold the source tree, so the ROM is built on a local machine and CI here only lints the scripts.
 
-Analysing the Android 17 tree needs about 75 GB of RAM plus swap: on a 28 GB host give the build at least 64 GB of swap.
-
 ### foss.crave.io
 
-This repository is laid out as a local manifest directory: `mblu21.xml` sits at its root, so cloning it into `.repo/local_manifests` is enough. Every repository it references is public, as Crave requires. From a Crave devspace on a LineageOS 24.0 project:
+This repository is laid out as a local manifest directory: `mblu21.xml` sits at its root, so cloning it into `.repo/local_manifests` is enough. Every repository it references is public, as Crave requires. From a Crave devspace (the script re-initialises the checkout to `lineage-24.0`, so a base project on another LineageOS branch also works):
 
 ```
 ./crave-build.sh

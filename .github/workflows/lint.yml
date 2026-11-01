@@ -4,11 +4,14 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: sudo apt-get update && sudo apt-get install -y shellcheck libxml2-utils
       - run: shellcheck -e SC1091 build.sh crave-build.sh
       - run: python3 -m py_compile validate-images.py

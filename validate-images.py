@@ -142,6 +142,8 @@ def main():
         check(f"vbmeta chains {part}@{loc}", got == str(loc), f"location {got}")
     extra = set(chains) - set(STOCK_CHAINS)
     check("vbmeta has no extra chains", not extra, ",".join(sorted(extra)) or "none")
+    inline = len(re.findall(r"^\s+(Hash|Hashtree) descriptor:", vbmeta, re.M))
+    check("vbmeta has no inline hash/hashtree descriptors", inline == 0, str(inline))
 
     for image, expected in STOCK_VBMETA_CONTENTS.items():
         info = avb_info(args.avbtool, os.path.join(out, f"{image}.img"))
