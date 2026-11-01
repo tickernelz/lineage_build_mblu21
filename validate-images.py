@@ -89,13 +89,55 @@ def unpack(tool, image, out):
     return fields
 
 
+def extract_ramdisks(vendor_boot_dir):
+    found = {}
+    for name in sorted(os.listdir(vendor_boot_dir)):
+        if not name.startswith("vendor_ramdisk") or name == "vendor_ramdisk-by-name":
+            continue
+        dest = os.path.join(vendor_boot_dir, name + ".d")
+        os.makedirs(dest)
+        data = run_bytes(["lz4", "-dc", os.path.join(vendor_boot_dir, name)])
+        subprocess.run(["cpio", "-idm", "--quiet"], input=data, cwd=dest, check=True)
+        found[name] = dest
+    return found
+
+
+def run_bytes(cmd):
+    return subprocess.run(cmd, check=True, capture_output=True).stdout
+
+
+def ramdisk_types(info):
+    return re.findall(r"type:\s*(0x[0-9a-f]+)", info)
+
+
+def vendor_owned_files(root):
+    files = {}
+    for rel in ("lib/modules", "first_stage_ramdisk"):
+        base = os.path.join(root, rel)
+        if not os.path.isdir(base):
+            continue
+        for name in os.listdir(base):
+            path = os.path.join(base, name)
+            if not os.path.isfile(path):
+                continue
+            if rel == "lib/modules" and not (name.endswith(".ko") or name in ("modules.load", "modules.load.recovery")):
+                continue
+            if rel == "first_stage_ramdisk" and not name.startswith("fstab."):
+                continue
+            files[f"{rel}/{name}"] = sha256(path)
+    for name in os.listdir(root):
+        if name.startswith("ueventd.") and name.endswith(".rc"):
+            files[name] = sha256(os.path.join(root, name))
+    return files
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("product_out")
     parser.add_argument("--stock-kernel-sha256", required=True)
     parser.add_argument("--avbtool", default=shutil.which("avbtool") or "avbtool")
     parser.add_argument("--unpack-bootimg", default=shutil.which("unpack_bootimg") or "unpack_bootimg")
-    parser.add_argument("--firmware-dir", required=True, help="stock dump holding l_modem_a.bin and the other chained firmware partitions")
+    parser.add_argument("--firmware-dir", required=True, help="stock dump holding vendor_boot_a.bin, l_modem_a.bin and the other chained firmware partitions")
     parser.add_argument("--json", help="write results as JSON to this path")
     args = parser.parse_args()
 
@@ -134,6 +176,28 @@ def main():
         with open(os.path.join(tmp, "vendor_boot", "bootconfig"), "rb") as f:
             bootconfig = f.read().decode(errors="replace").strip("\x00\n ")
         check("vendor_boot bootconfig = stock", bootconfig == STOCK_VENDOR_BOOTCONFIG, repr(bootconfig))
+
+        stock_vb = os.path.join(tmp, "stock_vendor_boot")
+        unpack(args.unpack_bootimg, os.path.join(args.firmware_dir, "vendor_boot_a.bin"), stock_vb)
+        check("vendor_boot dtb = stock", sha256(os.path.join(tmp, "vendor_boot", "dtb")) == sha256(os.path.join(stock_vb, "dtb")), sha256(os.path.join(tmp, "vendor_boot", "dtb")))
+
+        built = extract_ramdisks(os.path.join(tmp, "vendor_boot"))
+        stock = extract_ramdisks(stock_vb)
+        info = run([args.unpack_bootimg, "--boot_img", os.path.join(out, "vendor_boot.img"), "--format=info", "--out", os.path.join(tmp, "vbinfo")])
+        types = ramdisk_types(info)
+        check("vendor_boot has platform + recovery ramdisks", sorted(types) == ["0x1", "0x2"], ",".join(types))
+
+        merged = {}
+        for name, root in built.items():
+            merged.update(vendor_owned_files(root))
+        expected = vendor_owned_files(next(iter(stock.values())))
+        missing = sorted(set(expected) - set(merged))
+        changed = sorted(k for k in expected if k in merged and merged[k] != expected[k])
+        check("vendor ramdisk vendor files = stock", not missing and not changed, f"{len(expected)} files, missing {len(missing)}, changed {len(changed)}" + (f" e.g. {(missing + changed)[0]}" if missing or changed else ""))
+
+        recovery_roots = [root for name, root in built.items() if os.path.isfile(os.path.join(root, "system", "bin", "recovery"))]
+        check("recovery ramdisk has /system/bin/recovery", bool(recovery_roots), str(len(recovery_roots)))
+        check("recovery ramdisk has fastbootd", any(os.path.isfile(os.path.join(r, "system", "bin", "fastbootd")) for r in recovery_roots), "system/bin/fastbootd")
 
     vbmeta = avb_info(args.avbtool, os.path.join(out, "vbmeta.img"))
     chains = dict(re.findall(r"Partition Name:\s+(\S+)\s+Rollback Index Location:\s+(\d+)", vbmeta))
