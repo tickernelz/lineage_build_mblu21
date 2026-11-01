@@ -10,6 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y shellcheck libxml2-utils
-      - run: shellcheck -e SC1091 build.sh
+      - run: shellcheck -e SC1091 build.sh crave-build.sh
       - run: python3 -m py_compile validate-images.py
-      - run: xmllint --noout local_manifests/mblu21.xml
+      - run: xmllint --noout mblu21.xml
