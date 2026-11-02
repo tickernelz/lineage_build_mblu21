@@ -28,6 +28,14 @@ repo sync -c --no-tags -j8
 ANDROID_ROOT=$PWD .repo/local_manifests/build.sh
 ```
 
+Build options, read from the environment by the device tree:
+
+| Variable | Default | Effect |
+|---|---|---|
+| `WITH_GMS=true` | unset | Builds Google apps in. The manifest pins MindTheGapps `vendor_gapps` at `bfa45ac` (branch `cinnamonbun`, Android 17); its prebuilts come through Git LFS, hence `--git-lfs` above. |
+| `MBLU21_BRINGUP=1` | unset | Adds `ignore_loglevel` to the kernel command line and `androidboot.init_fatal_reboot_target=recovery` to bootconfig. Debug only: `validate-images.py` fails a build that carries either. |
+| `MBLU21_ADB_KEYS=<path>` | empty | Copies that adb public key into the recovery ramdisk so recovery adb needs no on-screen prompt. The path must sit inside the source tree; `device/meizu/mblu21/keys/adb_keys` is gitignored for this. Never set it for a build you publish. |
+
 GitHub-hosted runners (4 vCPU, 16 GB RAM, 14 GB disk) cannot hold the source tree, so the ROM is built on a local machine and CI here only lints the scripts.
 
 ### foss.crave.io

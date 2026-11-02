@@ -61,7 +61,9 @@ DYNAMIC_PARTITIONS = ["system", "system_ext", "product", "vendor", "odm", "vendo
 GROUP_SIZE = 5553258496
 
 STOCK_VENDOR_CMDLINE = "console=ttyS1,115200n8 bootconfig bootconfig"
-STOCK_VENDOR_BOOTCONFIG = "androidboot.hardware=ums9230_6h10"
+EXPECTED_VENDOR_BOOTCONFIG = "androidboot.hardware=ums9230_6h10\nandroidboot.selinux=permissive"
+BRINGUP_CMDLINE_FLAGS = ("ignore_loglevel",)
+BRINGUP_BOOTCONFIG_KEYS = ("androidboot.init_fatal_reboot_target",)
 
 
 def run(cmd):
@@ -111,6 +113,17 @@ def ramdisk_types(info):
     return dict(re.findall(r"(vendor_ramdisk\d+): \{\s*size:[^}]*?type:\s*(0x[0-9a-f]+)", info, re.S))
 
 
+def fstab_without_avb(path):
+    lines = []
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            fields = line.split()
+            if len(fields) >= 5 and not fields[0].startswith("#"):
+                fields[4] = ",".join(flag for flag in fields[4].split(",") if not flag.startswith("avb"))
+            lines.append(" ".join(fields))
+    return hashlib.sha256("\n".join(lines).encode()).hexdigest()
+
+
 def vendor_owned_files(root):
     files = {}
     for rel in ("lib/modules", "first_stage_ramdisk"):
@@ -125,7 +138,7 @@ def vendor_owned_files(root):
                 continue
             if rel == "first_stage_ramdisk" and not name.startswith("fstab."):
                 continue
-            files[f"{rel}/{name}"] = sha256(path)
+            files[f"{rel}/{name}"] = fstab_without_avb(path) if name.startswith("fstab.") else sha256(path)
     for name in os.listdir(root):
         if name.startswith("ueventd.") and name.endswith(".rc"):
             files[name] = sha256(os.path.join(root, name))
@@ -176,7 +189,11 @@ def main():
         check("vendor_boot cmdline = stock", vboot.get("vendor command line args") == STOCK_VENDOR_CMDLINE, repr(vboot.get("vendor command line args")))
         with open(os.path.join(tmp, "vendor_boot", "bootconfig"), "rb") as f:
             bootconfig = f.read().decode(errors="replace").strip("\x00\n ")
-        check("vendor_boot bootconfig = stock", bootconfig == STOCK_VENDOR_BOOTCONFIG, repr(bootconfig))
+        check("vendor_boot bootconfig = stock + selinux permissive", bootconfig == EXPECTED_VENDOR_BOOTCONFIG, repr(bootconfig))
+        bringup_config = [k for k in BRINGUP_BOOTCONFIG_KEYS if k in bootconfig]
+        check("vendor_boot bootconfig has no bring-up keys", not bringup_config, ",".join(bringup_config) or "none")
+        bringup_cmdline = [f for f in BRINGUP_CMDLINE_FLAGS if f in vboot.get("vendor command line args", "")]
+        check("vendor_boot cmdline has no bring-up flags", not bringup_cmdline, ",".join(bringup_cmdline) or "none")
 
         stock_vb = os.path.join(tmp, "stock_vendor_boot")
         unpack(args.unpack_bootimg, os.path.join(args.firmware_dir, "vendor_boot_a.bin"), stock_vb)
@@ -196,11 +213,15 @@ def main():
         expected = vendor_owned_files(next(iter(stock.values())))
         missing = sorted(set(expected) - set(merged))
         changed = sorted(k for k in expected if k in merged and merged[k] != expected[k])
-        check("vendor ramdisk vendor files = stock", not missing and not changed, f"{len(expected)} files, missing {len(missing)}, changed {len(changed)}" + (f" e.g. {(missing + changed)[0]}" if missing or changed else ""))
+        check("vendor ramdisk vendor files = stock (fstab without avb flags)", not missing and not changed, f"{len(expected)} files, missing {len(missing)}, changed {len(changed)}" + (f" e.g. {(missing + changed)[0]}" if missing or changed else ""))
 
         check("recovery ramdisk has /system/bin/recovery", any(os.path.isfile(os.path.join(r, "system", "bin", "recovery")) for r in recovery_roots), f"{len(recovery_roots)} recovery fragment(s)")
         check("recovery ramdisk has fastbootd", any(os.path.isfile(os.path.join(r, "system", "bin", "fastbootd")) for r in recovery_roots), "system/bin/fastbootd")
         check("platform ramdisk has no recovery binary", bool(platform_roots) and not any(os.path.isfile(os.path.join(r, "system", "bin", "recovery")) for r in platform_roots), f"{len(platform_roots)} platform fragment(s)")
+
+        key_path = os.path.join("product", "etc", "security", "adb_keys")
+        leaked = sorted({name for name, root in built.items() if os.path.isfile(os.path.join(root, key_path)) and not os.path.islink(os.path.join(root, key_path))})
+        check("vendor_boot carries no adb key", not leaked, ",".join(leaked) or "none")
 
     vbmeta = avb_info(args.avbtool, os.path.join(out, "vbmeta.img"))
     chains = dict(re.findall(r"Partition Name:\s+(\S+)\s+Rollback Index Location:\s+(\d+)", vbmeta))
