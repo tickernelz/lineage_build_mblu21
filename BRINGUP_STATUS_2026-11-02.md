@@ -57,3 +57,18 @@ Flip one reserved byte in the stock `init_boot` header (offset `0x20`, `00`→`f
 
 The image is staged at `~/mblu21-flash/init_boot_tampered.img`; the stock original is `init_boot_a.bin` in the dump for immediate restore.
 
+## Root achieved (same session, after the AVB findings)
+
+Two working root paths were proven on the phone; `init_boot` is **not** AVB-verified, while `boot` and `vendor_boot` are.
+
+| Path | Image written | Result |
+|---|---|---|
+| KernelSU-Next 3.4.2 | `init_boot-kernelsu-next-lkm.img` (`3ed94999…`, patched by official `ksud` in CI) | boots; `su -c id` = uid 0, ctx `u:r:ksu:s0` |
+| SukiSU-Ultra 4.3.0 | `init_boot` patched on-device by official `ksud 4.3.0` with `lkm-aarch64-android13-5.15_kernelsu.ko` (`c8251322…`) → `cd060b9e…` | boots; `su -c id` = uid 0, ctx `u:r:ksu:s0`; `ksud 4.3.0 (uapi 6)`; manager `com.sukisu.ultra`; SELinux still **Enforcing** |
+
+`boot`, `dtbo`, `vbmeta` stayed stock Meizu throughout. Restoring stock `init_boot` removes root at any time.
+
+Correction to the ZHA-4389 note: SukiSU-Ultra v4.3.0 **does** ship an Android `ksud`, so `ksud boot-patch -b init_boot.img -m <lkm>.ko --kmi android13-5.15 --partition init_boot` works without the manager app; the manager only installs the userspace component.
+
+Still blocked: OrangeFox/SHRP in `vendor_boot` (AVB-verified), and SUSFS for banking-app hiding — the LKM route needs a `susfs` module built against the loaded kernel, which is not yet verified for SukiSU 4.3.0.
+
