@@ -94,6 +94,8 @@ Persistence is a KernelSU module, `susfs_guard_lkm` (zip `55740001…`, id `susf
 
 `ksud susfs module install` only generates the settings auto-start module (`susfs_manager` v4.0.0) that re-applies the saved SUSFS configuration at boot; it neither ships nor loads an LKM. That is why the guard LKM needs its own module.
 
+The module is published as pre-release `mblu21-susfs-lkm-20261102` with `susfs_guard_lkm.zip` (sha256 `55740001f1133f067b324a316c779fe8907275d120dfc94cb9d8cef359ac9f66`) and `SHA256SUMS`.
+
 Not covered by SUSFS: hiding the SukiSU manager app itself and Play Integrity attestation (a PIF-style module is needed for apps that call the Integrity API).
 
 
