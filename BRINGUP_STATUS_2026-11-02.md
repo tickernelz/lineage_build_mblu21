@@ -34,3 +34,26 @@ Consequence: a ROM signed with test keys cannot boot on this phone while `vbmeta
 ## Next viable path
 
 GSI only: keep `boot`, `init_boot`, `vendor_boot`, `dtbo` and `vbmeta` stock (so AVB passes), and replace only `system` inside `super` with a LineageOS GSI. This is gate 0 of PLAN.md. It needs a phone session and will require formatting userdata.
+
+## Why GSI is also unlikely to work (checked 2026-11-02)
+
+The first-stage `fstab.ums9230_6h10` inside the **stock** vendor_boot ramdisk asks for GSI keys:
+
+```
+system /system erofs ro wait,avb=vbmeta_system,logical,first_stage_mount,\
+avb_keys=/avb/q-gsi.avbpubkey:/avb/r-gsi.avbpubkey:/avb/s-gsi.avbpubkey,slotselect
+```
+
+But those key files are **not on the device**: nothing matching `*.avbpubkey` or `/avb/*-gsi*` exists in the stock `vendor_boot` ramdisk (873 entries, no `avb/`), in `super`, or in the extracted `vendor`. The fstab entry is inherited boilerplate from a GSI-ready vendor, and `fs_mgr` fails closed when a listed key file is missing.
+
+So a GSI written to `system` would be verified against the vendor key from `vbmeta_system` (sha1 `abf3065f…`), not a Google GSI key — with the same result as the full ROM: rejected.
+
+## Cheapest possible AVB probe (prepared, not yet run)
+
+Flip one reserved byte in the stock `init_boot` header (offset `0x20`, `00`→`ff`), write it to `init_boot_a`, boot. Everything else stays stock.
+
+- Phone boots normally → AVB for `init_boot` is not enforced, and rooting with SukiSU Ultra (LKM, which patches `init_boot`) becomes viable.
+- Phone stops at the logo → AVB is enforced for `init_boot` too, so root and every other custom image stay blocked without a Meizu key.
+
+The image is staged at `~/mblu21-flash/init_boot_tampered.img`; the stock original is `init_boot_a.bin` in the dump for immediate restore.
+
