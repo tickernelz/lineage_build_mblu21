@@ -4,12 +4,15 @@ Local manifest, build script and static image checks for the unofficial LineageO
 
 **Status: untested on hardware.** Releases are pre-releases labelled `UNTESTED` until they are booted on a phone. See [PLAN.md](PLAN.md) for the bring-up plan and the definition of "working".
 
+**The 2026-11-02 hardware session showed the build cannot boot as things stand.** This phone's bootloader rejects every `vbmeta` it did not get from Meizu, even with the bootloader unlocked, so a ROM signed with the AOSP test key stops at the logo. The measurements are in [BRINGUP_STATUS_2026-11-02.md](BRINGUP_STATUS_2026-11-02.md) and in [android_kernel_meizu_mblu21/docs/HARDWARE-2026-11-02.md](https://github.com/tickernelz/android_kernel_meizu_mblu21/blob/main/docs/HARDWARE-2026-11-02.md). Rooting that phone does work, through `init_boot`; that lives in the kernel repository.
+
 ## Repositories
 
 | Repository | Content |
 |---|---|
 | [android_device_meizu_mblu21](https://github.com/tickernelz/android_device_meizu_mblu21) | device tree |
 | [android_vendor_meizu_mblu21](https://github.com/tickernelz/android_vendor_meizu_mblu21) | stock images and proprietary files |
+| [android_kernel_meizu_mblu21](https://github.com/tickernelz/android_kernel_meizu_mblu21) | kernel path, root images, step-by-step root tutorial |
 
 ## Build
 
