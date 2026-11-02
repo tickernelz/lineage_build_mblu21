@@ -13,7 +13,9 @@ Local manifest, build script and static image checks for the unofficial LineageO
 
 ## Build
 
-Requirements: about 300 GB free disk for source and `out/`. On the 28 GB RAM build host, the Soong analysis phase alone reached about 75 GB of RAM plus swap; give the build at least 64 GB of swap. A full local build has not completed yet.
+Requirements: about 300 GB free disk for source and `out/`, and about 50 GB of RAM plus swap for the Soong analysis phase. The first complete build (2026-11-02, `-j12`, 16 cores, 62 GB RAM, 96 GB swap) peaked at 43.6 GB RAM + 5.6 GB swap during analysis and took about 3.5 hours of compilation. On a 28 GB RAM WSL host the analysis never finished.
+
+That build capped the Soong Go heap with `GOMEMLIMIT`. `soong_build` runs under `env -i`, so `patches/build_soong-gomemlimit.patch` passes `SOONG_GOMEMLIMIT` through; apply it with `git -C build/soong apply` and export `SOONG_GOMEMLIMIT=44GiB` (about 90% of the memory you give the build). It is optional on hosts with more RAM.
 
 ```
 mkdir lineage-24.0 && cd lineage-24.0

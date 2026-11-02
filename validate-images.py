@@ -7,6 +7,7 @@
 """Static checks of mblu21 build output against the stock partition layout."""
 
 import argparse
+import filecmp
 import hashlib
 import json
 import os
@@ -221,7 +222,12 @@ def main():
             if name.endswith(".img"):
                 os.symlink(os.path.abspath(os.path.join(out, name)), os.path.join(tree, name))
         for part in FIRMWARE_PARTITIONS:
-            os.symlink(os.path.abspath(os.path.join(args.firmware_dir, f"{part}_a.bin")), os.path.join(tree, f"{part}.img"))
+            stock = os.path.abspath(os.path.join(args.firmware_dir, f"{part}_a.bin"))
+            built = os.path.join(out, f"{part}.img")
+            if os.path.exists(built):
+                check(f"{part}.img matches stock", filecmp.cmp(built, stock, shallow=False), stock)
+            else:
+                os.symlink(stock, os.path.join(tree, f"{part}.img"))
         try:
             run([args.avbtool, "verify_image", "--image", os.path.join(tree, "vbmeta.img"), "--follow_chain_partitions"])
             check("avbtool verify_image --follow_chain_partitions", True, "all descriptors match images")
