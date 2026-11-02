@@ -103,7 +103,7 @@ Setiap baris butuh bukti (log/screenshot/angka), bukan klaim.
 |---|---|---|
 | `android_device_meizu_mblu21` | device tree, sepolicy, overlay, fstab, extract script | Publik (Apache-2.0) |
 | `android_vendor_meizu_mblu21` | blob + prebuilt vendor/odm/dlkm image (file >100 MiB sebagai release asset + SHA-256) | Publik (disclaimer: blob milik Meizu/Unisoc, untuk restorasi) |
-| `android_kernel_meizu_mblu21` | hanya bila Jalur C dipakai | Publik (GPL-2.0, wajib) |
+| `android_kernel_meizu_mblu21` | kernel path, root images (LKM dan kernel), tutorial root, bukti hardware | Publik (GPL-2.0, wajib) |
 | `lineage_build_mblu21` | local manifest, script build, plan ini | Publik |
 
 CI GitHub Actions gratis (4 vCPU, 16 GB, 14 GB SSD) hanya untuk lint/shellcheck/validasi BoardConfig; ROM dibangun di PC lokal.
