@@ -16,6 +16,7 @@ repo init -u https://github.com/LineageOS/android.git -b lineage-24.0 --git-lfs 
 /opt/crave/resync.sh && \
 rm -rf /tmp/mblu21-stock && mkdir /tmp/mblu21-stock && \
 for f in boot_a.bin vendor_a.img; do curl -fL --retry 3 -o /tmp/mblu21-stock/\$f ${STOCK_RELEASE_URL}/\$f || exit 1; done && \
+printf '%s  %s\n' 3a78e1394a5c3c52252384c7a136ae3c6c4fd758f0ba4a781c91813b1352f6da boot_a.bin 168940cd76345d729c29a1493320ded445aab7912d5a70b201763e5551700c83 vendor_a.img | (cd /tmp/mblu21-stock && sha256sum -c -) && \
 (cd device/meizu/mblu21 && ./extract-files.py /tmp/mblu21-stock) && \
 source build/envsetup.sh && \
 breakfast mblu21 ${VARIANT} && \

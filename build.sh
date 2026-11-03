@@ -17,6 +17,10 @@ trap 'rm -rf "${stock_dir}"' EXIT
 for f in boot_a.bin vendor_a.img; do
     curl -fL --retry 3 -o "${stock_dir}/${f}" "${STOCK_RELEASE_URL}/${f}"
 done
+printf '%s  %s\n' \
+    3a78e1394a5c3c52252384c7a136ae3c6c4fd758f0ba4a781c91813b1352f6da boot_a.bin \
+    168940cd76345d729c29a1493320ded445aab7912d5a70b201763e5551700c83 vendor_a.img |
+    (cd "${stock_dir}" && sha256sum -c -)
 (cd device/meizu/mblu21 && ./extract-files.py "${stock_dir}")
 
 export USE_CCACHE=1
