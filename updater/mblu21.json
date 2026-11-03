@@ -1,0 +1,18 @@
+[
+  {
+    "datetime": 1793671906,
+    "type": "unofficial",
+    "version": "24.0",
+    "files": [
+      {
+        "filename": "lineage-24.0-20261103-UNOFFICIAL-mblu21-r2.zip",
+        "os_patch_level": "2026-10-01",
+        "os_sdk_level": 37,
+        "ota_property_files": "payload_metadata.bin:3738:81762,payload.bin:3738:1957947856,payload_properties.txt:1957951652:155,apex_info.pb:1768:1474,care_map.pb:3289:402,metadata:69:679,metadata.pb:816:904",
+        "sha256": "7cdf34db6050c6395d3c1de5585cf76dc0b9a8c10eb9ac322e470a37582ac0e1",
+        "size": 1957955087,
+        "url": "https://github.com/tickernelz/lineage_build_mblu21/releases/download/lineage-24.0-20261103-UNOFFICIAL-mblu21-r2/lineage-24.0-20261103-UNOFFICIAL-mblu21-r2.zip"
+      }
+    ]
+  }
+]
