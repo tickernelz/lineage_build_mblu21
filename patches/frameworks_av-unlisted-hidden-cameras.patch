@@ -1,0 +1,81 @@
+diff --git a/services/camera/libcameraservice/common/CameraProviderManager.cpp b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+index cfa8e6d..f46046b 100644
+--- a/services/camera/libcameraservice/common/CameraProviderManager.cpp
++++ b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+@@ -46,6 +46,8 @@
+ #include <camera_metadata_hidden.h>
+ #include <android-base/parseint.h>
+ #include <android-base/logging.h>
++#include <android-base/properties.h>
++#include <android-base/strings.h>
+ #include <android/content/res/CameraCompatibilityInfo.h>
+ #include <cutils/properties.h>
+ #include <hwbinder/IPCThreadState.h>
+@@ -1037,6 +1039,8 @@ void CameraProviderManager::ProviderInfo::initializeProviderInfoCommon(
+         }
+     }
+ 
++    addUnlistedHiddenDevices(devices);
++
+     ALOGI("Camera provider %s ready with %zu camera devices",
+             mProviderName.c_str(), mDevices.size());
+ 
+@@ -2652,6 +2656,45 @@ const std::string& CameraProviderManager::ProviderInfo::getType() const {
+     return mType;
+ }
+ 
++void CameraProviderManager::ProviderInfo::addUnlistedHiddenDevices(
++        const std::vector<std::string>& listedDevices) {
++    const std::string ranges = base::GetProperty("ro.camera.unlisted_hidden_ids", "");
++    if (ranges.empty() || listedDevices.empty()) {
++        return;
++    }
++
++    uint16_t major, minor;
++    std::string type, listedId;
++    if (parseDeviceName(listedDevices.front(), &major, &minor, &type, &listedId) != OK) {
++        return;
++    }
++
++    for (const auto& range : base::Split(ranges, ",")) {
++        const std::vector<std::string> bounds = base::Split(range, "-");
++        int first, last;
++        if (bounds.size() > 2 || !base::ParseInt(bounds.front(), &first, 0) ||
++                !base::ParseInt(bounds.back(), &last, first)) {
++            ALOGE("%s: Ignoring malformed unlisted camera id range '%s'", __FUNCTION__,
++                    range.c_str());
++            continue;
++        }
++        for (int id = first; id <= last; id++) {
++            if (mUniqueCameraIds.count(std::to_string(id)) > 0) {
++                continue;
++            }
++            const std::string name = "device@" + std::to_string(major) + "." +
++                    std::to_string(minor) + "/" + type + "/" + std::to_string(id);
++            std::string parsedId;
++            if (addDevice(name, CameraDeviceStatus::PRESENT, &parsedId) != OK) {
++                continue;
++            }
++            mDevices.back()->mSystemCameraKind = SystemCameraKind::HIDDEN_SECURE_CAMERA;
++            ALOGI("%s: Added unlisted camera %s as a hidden secure camera", __FUNCTION__,
++                    name.c_str());
++        }
++    }
++}
++
+ status_t CameraProviderManager::ProviderInfo::addDevice(
+         const std::string& name, CameraDeviceStatus initialStatus,
+         /*out*/ std::string* parsedId) {
+diff --git a/services/camera/libcameraservice/common/CameraProviderManager.h b/services/camera/libcameraservice/common/CameraProviderManager.h
+index 6af6c6f..e360285 100644
+--- a/services/camera/libcameraservice/common/CameraProviderManager.h
++++ b/services/camera/libcameraservice/common/CameraProviderManager.h
+@@ -569,6 +569,8 @@ private:
+         status_t dump(int fd, const Vector<String16>& args);
+ 
+         void initializeProviderInfoCommon(const std::vector<std::string> &devices);
++
++        void addUnlistedHiddenDevices(const std::vector<std::string>& listedDevices);
+         /**
+          * Setup vendor tags for this provider
+          */
