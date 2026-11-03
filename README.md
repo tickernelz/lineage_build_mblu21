@@ -14,7 +14,7 @@ Local manifest, build script and static image checks for the unofficial LineageO
 | [`lineage-24.0-20261103-UNOFFICIAL-mblu21-r8`](https://github.com/tickernelz/lineage_build_mblu21/releases/tag/lineage-24.0-20261103-UNOFFICIAL-mblu21-r8) (r7 on top of the source-built kernel modules, IMS extracted by `extract-files.py`) | not booted yet; not in the Updater feed |
 | [`lineage-24.0-20261102-UNOFFICIAL-mblu21`](https://github.com/tickernelz/lineage_build_mblu21/releases/tag/lineage-24.0-20261102-UNOFFICIAL-mblu21) | not booted; superseded by 20261103 |
 
-Not tested on any build yet: Bluetooth pairing, battery deep sleep, fingerprint. VoLTE on the Telkomsel test SIM is a network/SIM limitation (see r7).
+Not tested on any build yet: Bluetooth pairing, fingerprint. Battery deep sleep was not measured: the overnight run was skipped by Zhafron's decision on 2026-11-03, so there is no drain data. VoLTE on the Telkomsel test SIM is a network/SIM limitation (see r7).
 
 The 2026-11-02 hardware session found that this phone's bootloader rejects every `vbmeta` it did not get from Meizu, even with the bootloader unlocked. Builds since 20261103 therefore keep `boot`, `dtbo` and every `vbmeta*` stock and drop the `avb` flags from the first-stage fstab. The measurements are in [BRINGUP_STATUS_2026-11-02.md](BRINGUP_STATUS_2026-11-02.md) and in [android_kernel_meizu_mblu21/docs/HARDWARE-2026-11-02.md](https://github.com/tickernelz/android_kernel_meizu_mblu21/blob/main/docs/HARDWARE-2026-11-02.md). Root works through `init_boot`; that lives in the kernel repository.
 
