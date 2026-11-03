@@ -1,153 +1,155 @@
-# Plan v2 — LineageOS terbaru (24.0, Android 17) fully working untuk Meizu mBlu 21 (M416H)
+# Plan v2 — latest LineageOS (24.0, Android 17) fully working on the Meizu mBlu 21 (M416H)
 
-**Status:** DISETUJUI Zhafron 2026-10-31 (kartu 6c91d3fe + aa32fe5c). **Full otonom di ZHA-4374, destruktif: tidak. HP tidak disentuh sama sekali sampai Zhafron membuka sesi HP sendiri** — fokus: source build LineageOS 24.0.
-**Menggantikan:** `/home/zhafron/re/mblu21/LINEAGEOS_PLAN.md` v1 (ZHA-4374, target LineageOS 21)
-**Pelaksana:** Yanto (RE Specialist) di ZHA-4374 setelah plan ini disetujui
+[Bahasa Indonesia](docs/id/PLAN.md) (optional translation; this English text is the reference).
 
-## 1. Apa yang berubah dari v1 (ringkas)
+**Status:** APPROVED by Zhafron 2026-10-31 (cards 6c91d3fe + aa32fe5c). **Full autonomy in ZHA-4374, destructive: no. The phone is not touched at all until Zhafron opens a phone session himself**; focus: LineageOS 24.0 source build.
+**Supersedes:** `/home/zhafron/re/mblu21/LINEAGEOS_PLAN.md` v1 (ZHA-4374, target LineageOS 21)
+**Owner:** Yanto (RE Specialist) in ZHA-4374 once this plan is approved
 
-| # | v1 | v2 | Alasan / bukti |
+## 1. What changed from v1 (summary)
+
+| # | v1 | v2 | Reason / evidence |
 |---|---|---|---|
-| 1 | Target LineageOS 21 (Android 14) | **LineageOS 24.0 (Android 17)**; cadangan 23.2 (Android 16 QPR2) | 24.0 rilis resmi 12 Okt 2026 ([changelog 32](https://lineageos.org/Changelog-32/)); 21 sudah 3 versi di belakang. Kamu minta "terbaru". |
-| 2 | Kernel: build sendiri dari source Realme C53 5.15.178 | **Kernel stok (prebuilt GKI Google) untuk P0/P1**; build source ditunda | Lihat §3. Kernel stok = GKI resmi Google, modul vendor pakai `modversions`; tidak butuh source Meizu. |
-| 3 | Langsung bikin device tree | **Gerbang 0: tes GSI LineageOS dulu** di vendor stok | Satu sesi HP memberi peta komponen yang jalan/tidak sebelum investasi berhari-hari. Juga menjawab apakah Android 17 mau jalan di vendor Android 13. |
-| 4 | Ekstrak 3.962 blob satu per satu | **Vendor/odm/vendor_dlkm stok sebagai prebuilt image** dulu; blob individual hanya untuk system/system_ext/product yang benar-benar dipakai | Jalur tercepat ke boot; blob work turun dari ~4,5 GB jadi beberapa ratus MB. |
-| 5 | "Vendor Android 14" | **Koreksi fakta: vendor = Android 13** (`ro.vendor.build.version.release=13`, `ro.board.api_level=33`, VINTF `target-level="7"`); system = Android 14 | Dibaca dari `extracted/vendor/build.prop` dan `vendor/etc/vintf/manifest.xml`. Ini risiko utama Android 17 (§7). |
-| 6 | Repo publik semua, blob sebagai release asset publik | Semua repo publik, **termasuk blob/prebuilt vendor** (keputusan Zhafron) | Blob dipisah ke repo vendor sendiri dengan disclaimer, supaya takedown (jika ada) tidak menyeret device tree. |
-| 7 | ROM build "PC lokal 3-8 jam" tanpa angka resource | Resource diukur: 16 core, 28 GB RAM, 364 GB disk bebas → sync `--depth=1`, swap 32 GB, `-j12` | Android 17 butuh ~300 GB untuk sync penuh + out; 28 GB RAM di bawah anjuran 32 GB. |
+| 1 | Target LineageOS 21 (Android 14) | **LineageOS 24.0 (Android 17)**; fallback 23.2 (Android 16 QPR2) | 24.0 was officially released on 12 Oct 2026 ([changelog 32](https://lineageos.org/Changelog-32/)); 21 is already 3 versions behind. You asked for "latest". |
+| 2 | Kernel: self-built from the Realme C53 5.15.178 source | **Stock kernel (Google's prebuilt GKI) for P0/P1**; source build deferred | See §3. Stock kernel = Google's official GKI, vendor modules use `modversions`; no Meizu source needed. |
+| 3 | Start with the device tree | **Gate 0: test a LineageOS GSI first** on the stock vendor | One phone session maps which components work before days of investment. It also answers whether Android 17 runs on an Android 13 vendor. |
+| 4 | Extract 3,962 blobs one by one | **Stock vendor/odm/vendor_dlkm as prebuilt images** first; individual blobs only for the system/system_ext/product pieces actually used | Fastest path to boot; blob work drops from ~4.5 GB to a few hundred MB. |
+| 5 | "Android 14 vendor" | **Fact correction: vendor = Android 13** (`ro.vendor.build.version.release=13`, `ro.board.api_level=33`, VINTF `target-level="7"`); system = Android 14 | Read from `extracted/vendor/build.prop` and `vendor/etc/vintf/manifest.xml`. This is the main Android 17 risk (§7). |
+| 6 | All repositories public, blobs as public release assets | All repositories public, **including the vendor blobs/prebuilts** (Zhafron's decision) | Blobs live in their own vendor repository with a disclaimer, so a takedown (if any) does not drag the device tree with it. |
+| 7 | ROM build "local PC 3-8 hours" with no resource numbers | Resources measured: 16 cores, 28 GB RAM, 364 GB free disk → sync `--depth=1`, 32 GB swap, `-j12` | Android 17 needs ~300 GB for a full sync + out; 28 GB RAM is below the recommended 32 GB. |
 
-## 2. Fakta perangkat (terverifikasi dari dump)
+## 2. Device facts (verified from the dump)
 
-- SoC Unisoc UMS9230 (T606), board `ums9230_6h10`, UFS, A/B, dynamic partitions (`super` 5,56 GB), Treble, AVB terkunci (green).
+- SoC Unisoc UMS9230 (T606), board `ums9230_6h10`, UFS, A/B, dynamic partitions (`super` 5.56 GB), Treble, AVB locked (green).
 - System Android 14 (U01005, patch 2025-04-05); **vendor Android 13** (board API 33, VINTF FCM level 7, VNDK 33).
-- Boot chain header v4: `boot` (kernel saja), `init_boot` (ramdisk generik), `vendor_boot` (ramdisk vendor + DTB, base DTB di offset 25.714.752), `dtbo` (9 overlay, aktif `dtbo_idx=7` = `ums9230-6h10`). `dtb_a` kosong.
-- Kernel stok: `Linux version 5.15.149-android13-8-00008-gbe074b05e5af-ab12096863 (build-user@build-host)`, clang 14.0.7, 16 Jul 2024 → **build GKI resmi Google** (ci.android.com), cabang `android13-5.15`.
-- Modul vendor (`vendor_dlkm`, 113 modul): `vermagic 5.15.149-android13-8-ge43a0339b137-ab333 ... modversions`. String versi beda dari kernel yang jalan di HP, tapi modul tetap ter-load di firmware stok → loader memakai CRC `modversions`, bukan string versi.
-- Backup lengkap ada: `C:\Users\Public\mblu21-backup\full_dump` (44 partisi, 6,07 GB) + hasil ekstrak di `~/re/mblu21/extracted`.
-- Unlock: TomKing062 CVE-2022-38694 (`ums9230_universal_unlock_UFS`), menghapus data.
+- Boot chain header v4: `boot` (kernel only), `init_boot` (generic ramdisk), `vendor_boot` (vendor ramdisk + DTB, base DTB at offset 25,714,752), `dtbo` (9 overlays, active `dtbo_idx=7` = `ums9230-6h10`). `dtb_a` is empty.
+- Stock kernel: `Linux version 5.15.149-android13-8-00008-gbe074b05e5af-ab12096863 (build-user@build-host)`, clang 14.0.7, 16 Jul 2024 → **Google's official GKI build** (ci.android.com), branch `android13-5.15`.
+- Vendor modules (`vendor_dlkm`, 113 modules): `vermagic 5.15.149-android13-8-ge43a0339b137-ab333 ... modversions`. The version string differs from the kernel running on the phone, yet the modules load on the stock firmware → the loader uses the `modversions` CRCs, not the version string.
+- A full backup exists: `C:\Users\Public\mblu21-backup\full_dump` (44 partitions, 6.07 GB) + the extracted tree in `~/re/mblu21/extracted`.
+- Unlock: TomKing062 CVE-2022-38694 (`ums9230_universal_unlock_UFS`), wipes data.
 
-## 3. Keputusan kernel (perubahan terbesar)
+## 3. Kernel decision (the biggest change)
 
-**Jalur A — dipakai untuk P0/P1:** `boot.img` stok (GKI Google) + `vendor_boot`, `dtbo`, `vendor_dlkm`, `system_dlkm` stok sebagai prebuilt (`BOARD_PREBUILT_*`/`TARGET_PREBUILT_KERNEL`). Tidak ada risiko KMI karena kombinasi ini persis yang jalan di HP hari ini.
+**Path A, used for P0/P1:** stock `boot.img` (Google GKI) + stock `vendor_boot`, `dtbo`, `vendor_dlkm`, `system_dlkm` as prebuilts (`BOARD_PREBUILT_*`/`TARGET_PREBUILT_KERNEL`). No KMI risk, because this combination is exactly what runs on the phone today.
 
-**Jalur B — patch keamanan kernel, setelah P1 stabil:** ganti `boot.img` dengan rilis GKI Google `android13-5.15` yang lebih baru (KMI sama, CRC modul tetap cocok). Tetap tanpa source Meizu. Verifikasi: semua 113 modul ter-load (`lsmod` vs daftar `modules.load`).
+**Path B, kernel security patches, after P1 is stable:** replace `boot.img` with a newer Google GKI `android13-5.15` release (same KMI, module CRCs still match). Still no Meizu source. Verification: all 113 modules load (`lsmod` vs the `modules.load` list).
 
-**Jalur C — build dari source untuk KernelSU, dijadwalkan setelah P0+P1 lulus (keputusan Zhafron)**, atau lebih awal hanya bila butuh driver fix: basis `android13-5.15` common Google + defconfig GKI; source Realme C53 5.15.178 dipakai sebagai referensi driver/DTS saja, bukan basis, karena berisi perubahan oplus dan hack `CONFIG_LOCALVERSION` untuk mengejar vermagic. Build Realme yang sedang jalan di ZHA-4374 tidak di jalur kritis.
+**Path C, source build for KernelSU, scheduled after P0+P1 pass (Zhafron's decision)**, or earlier only if a driver fix is needed: base is Google's `android13-5.15` common kernel + the GKI defconfig; the Realme C53 5.15.178 source serves only as a driver/DTS reference, not the base, because it carries oplus changes and a `CONFIG_LOCALVERSION` hack to chase vermagic. The Realme build running in ZHA-4374 is not on the critical path.
 
-LineageOS 23.2/24.0 resmi hanya menerima kernel dengan backport eBPF 1:1; GKI 5.15 Google memenuhi itu, kernel vendor-hack belum tentu.
+Official LineageOS 23.2/24.0 only accepts kernels with 1:1 eBPF backports; Google's GKI 5.15 meets that, a vendor-hacked kernel may not.
 
-## 4. Definisi "fully working" (gerbang rilis)
+## 4. Definition of "fully working" (release gate)
 
-Setiap baris butuh bukti (log/screenshot/angka), bukan klaim.
+Every row needs evidence (log/screenshot/number), not a claim.
 
-| Prioritas | Komponen | Kriteria lulus |
+| Priority | Component | Pass criterion |
 |---|---|---|
-| P0 | Boot | Setup wizard tercapai, 3x reboot tanpa bootloop |
-| P0 | Display/touch | Brightness, multi-touch, rotasi |
-| P0 | Enkripsi | FBE aktif, data tetap terbaca setelah reboot dengan PIN |
-| P0 | USB/charging | ADB, MTP, charging naik, indikator persen benar |
-| P0 | SELinux | **Enforcing** (permissive hanya saat bring-up) |
-| P1 | Wi-Fi | 2.4/5 GHz, reconnect setelah sleep |
+| P0 | Boot | Setup wizard reached, 3 reboots without a bootloop |
+| P0 | Display/touch | Brightness, multi-touch, rotation |
+| P0 | Encryption | FBE active, data still readable after a reboot with PIN |
+| P0 | USB/charging | ADB, MTP, charge level rising, correct percentage indicator |
+| P0 | SELinux | **Enforcing** (permissive only during bring-up) |
+| P1 | Wi-Fi | 2.4/5 GHz, reconnect after sleep |
 | P1 | Bluetooth | Pair, A2DP, HID |
-| P1 | Seluler | SIM Telkomsel di slot 1 dan slot 2 (bergantian): data 4G, SMS, telepon masuk/keluar |
-| P1 | VoLTE | Telepon VoLTE di Telkomsel (bukan fallback 3G/2G) |
-| P1 | Audio | Speaker, earpiece, mic (rekam + telepon), headset |
-| P1 | Kamera | Belakang + depan: foto, video 1080p, flash |
-| P1 | Sensor | Accelerometer, proximity saat telepon, light, (gyro jika ada) |
-| P1 | Face unlock (stok mendukung) | Enroll selesai, lalu unlock dengan wajah dari layar kunci, dalam mode enforcing |
+| P1 | Cellular | Telkomsel SIM in slot 1 and slot 2 (alternately): 4G data, SMS, incoming/outgoing calls |
+| P1 | VoLTE | VoLTE call on Telkomsel (not a 3G/2G fallback) |
+| P1 | Audio | Speaker, earpiece, mic (recording + call), headset |
+| P1 | Camera | Rear + front: photo, 1080p video, flash |
+| P1 | Sensors | Accelerometer, proximity during calls, light, (gyro if present) |
+| P1 | Face unlock (supported on stock) | Enrollment completes, then unlock with the face from the lock screen, in enforcing mode |
 | P1 | Fingerprint | Enroll + unlock |
-| P1 | GPS | Fix di luar ruangan < 60 detik |
-| P1 | Baterai | Deep sleep: layar mati idle ≤ 1%/jam selama 8 jam |
-| P1 | Update | OTA dari Updater LineageOS atau sideload terdokumentasi |
-| P2 | FM/NFC, HDR, 60fps video, mode kamera lanjutan | Status dilaporkan, bukan diklaim |
+| P1 | GPS | Outdoor fix < 60 seconds |
+| P1 | Battery | Deep sleep: screen-off idle ≤ 1%/hour over 8 hours |
+| P1 | Update | OTA from the LineageOS Updater or a documented sideload |
+| P2 | FM/NFC, HDR, 60fps video, advanced camera modes | Status reported, not claimed |
 
-"Fully working" = semua P0 + P1 lulus dengan bukti; P2 dilaporkan apa adanya.
+"Fully working" = every P0 + P1 passes with evidence; P2 is reported as it is.
 
-## 5. Fase kerja
+## 5. Work phases
 
-### Fase 0 — Persiapan PC, tanpa HP (0,5 hari + sync berjalan di latar)
-- Swap 32 GB di ext4 WSL (`/`, bukan `/mnt`), cek `.wslconfig` memberi ≥ 26 GB ke WSL.
-- `repo init -u https://github.com/LineageOS/android.git -b lineage-24.0 --git-lfs --depth=1` lalu `repo sync -c --no-tags -j8` (async, beberapa jam). Target disk: source + out + ccache ≤ 300 GB dari 364 GB bebas.
-- Repo lokal `android_device_meizu_mblu21` dari tree yang ada, basis template `arriRgb31/device_realme_rmx3760` (UMS9230 yang sama) untuk bagian HAL Unisoc/sprd.
-- **Acceptance:** sync selesai tanpa error, `source build/envsetup.sh && breakfast mblu21` mengenali device.
+### Phase 0: PC preparation, no phone (0.5 day + sync running in the background)
+- 32 GB swap on the WSL ext4 (`/`, not `/mnt`), check that `.wslconfig` gives WSL ≥ 26 GB.
+- `repo init -u https://github.com/LineageOS/android.git -b lineage-24.0 --git-lfs --depth=1` then `repo sync -c --no-tags -j8` (async, several hours). Disk target: source + out + ccache ≤ 300 GB of the 364 GB free.
+- Local `android_device_meizu_mblu21` repository from the existing tree, using the `arriRgb31/device_realme_rmx3760` template (same UMS9230) for the Unisoc/sprd HAL parts.
+- **Acceptance:** sync finishes without errors, `source build/envsetup.sh && breakfast mblu21` recognises the device.
 
-### Fase 1 — Gerbang 0: tes GSI (DITUNDA — Zhafron: "jangan dulu sentuh sentuh hp"). Yang boleh sekarang: build GSI 24.0 arm64 sebagai artefak siap-uji. Sesi HP dibuka hanya oleh Zhafron.
-- Build target GSI generik LineageOS 24.0 arm64 dari tree yang sama (atau GSI komunitas 24.0 bila sudah ada), plus GSI 23.2 sebagai pembanding.
-- Unlock bootloader (CVE-2022-38694), flash `vbmeta` dengan verifikasi dimatikan, flash GSI ke `system`, vendor/kernel stok tetap.
-- Jalankan matriks §4, simpan `logcat`, `dmesg`, `lsmod`.
-- **Keputusan dari hasil:** 24.0 boot dan P0 lulus → lanjut 24.0. 24.0 gagal di vendor Android 13 tapi 23.2 jalan → target diturunkan ke 23.2 (kamu diberi tahu dengan bukti). Keduanya gagal → laporan blocker, berhenti.
-- Rollback: flash ulang partisi dari backup via `spd_dump`/fastboot.
+### Phase 1: Gate 0, GSI test (DEFERRED; Zhafron: "don't touch the phone yet"). Allowed now: build the 24.0 arm64 GSI as a ready-to-test artifact. Only Zhafron opens a phone session.
+- Build the generic LineageOS 24.0 arm64 GSI target from the same tree (or a community 24.0 GSI if one exists), plus a 23.2 GSI for comparison.
+- Unlock the bootloader (CVE-2022-38694), flash `vbmeta` with verification disabled, flash the GSI to `system`, keep the stock vendor/kernel.
+- Run the §4 matrix, keep `logcat`, `dmesg`, `lsmod`.
+- **Decision from the results:** 24.0 boots and P0 passes → continue with 24.0. 24.0 fails on the Android 13 vendor but 23.2 runs → the target drops to 23.2 (you are told, with evidence). Both fail → blocker report, stop.
+- Rollback: reflash the partitions from the backup via `spd_dump`/fastboot.
 
-### Fase 2 — Device tree + build ROM penuh (2-4 hari, tanpa HP; jalan langsung setelah Fase 0, tidak menunggu Gerbang 0)
-- `BoardConfig.mk`: partisi/super group dari dump, header v4, LZ4, EROFS, AVB; kernel + vendor/odm/vendor_dlkm/system_dlkm sebagai prebuilt (§3 Jalur A).
-- `device.mk`: overlay, `fstab.mblu21`, init rc dari vendor stok yang menyentuh system, VINTF framework manifest.
-- Blob individual untuk system/system_ext/product dipilih dari analisis statis dump (init rc, VINTF, `dlopen`/`NEEDED` dari HAL vendor: IMS/telephony, kamera, fingerprint) karena Gerbang 0 ditunda; `extract-files.sh` reproducible dari dump + SHA-256.
-- SELinux permissive dulu.
+### Phase 2: Device tree + full ROM build (2-4 days, no phone; starts right after Phase 0, does not wait for Gate 0)
+- `BoardConfig.mk`: partitions/super group from the dump, header v4, LZ4, EROFS, AVB; kernel + vendor/odm/vendor_dlkm/system_dlkm as prebuilts (§3 Path A).
+- `device.mk`: overlays, `fstab.mblu21`, the stock vendor init rc files that touch system, the VINTF framework manifest.
+- Individual blobs for system/system_ext/product are chosen from static analysis of the dump (init rc, VINTF, `dlopen`/`NEEDED` of the vendor HALs: IMS/telephony, camera, fingerprint) because Gate 0 is deferred; `extract-files.sh` is reproducible from the dump + SHA-256.
+- SELinux permissive at first.
 - `brunch mblu21` (userdebug).
-- **Acceptance:** build menghasilkan ZIP + `boot`/`vendor_boot`/`init_boot`/`dtbo`/`vbmeta`; validasi statis: ukuran image ≤ ukuran partisi, header v4, cmdline sama dengan stok.
+- **Acceptance:** the build produces a ZIP + `boot`/`vendor_boot`/`init_boot`/`dtbo`/`vbmeta`; static validation: image size ≤ partition size, header v4, cmdline equal to stock.
 
-### Fase 3 — First boot + P0 (HP, 1-3 sesi)
-- Flash build, ambil `logcat`/`pstore`, perbaiki sampai semua P0 lulus.
+### Phase 3: First boot + P0 (phone, 1-3 sessions)
+- Flash the build, collect `logcat`/`pstore`, fix until every P0 passes.
 
-### Fase 4 — Stabilisasi P1 + SELinux enforcing (HP, 1-3 minggu)
-- Kerjakan per komponen; tiap komponen ditutup dengan bukti. Kamera dan VoLTE paling berisiko.
-- Sepolicy device sampai enforcing tanpa denial di logcat saat matriks dijalankan.
+### Phase 4: P1 stabilisation + SELinux enforcing (phone, 1-3 weeks)
+- Work per component; each component is closed with evidence. Camera and VoLTE are the riskiest.
+- Device sepolicy until enforcing with no denials in logcat while the matrix runs.
 
-### Fase 5 — Rilis (push dan rilis bebas; build yang belum diuji di HP wajib pre-release berlabel `UNTESTED`)
-- Tag `lineage-24.0-YYYYMMDD-UNOFFICIAL-mblu21`, rilis ZIP + image + SHA-256 + catatan rilis + matriks status.
-- Kunci rilis disimpan di GitHub Secrets/lokal, tidak pernah di repo.
-- README: cara build + cara flash + cara rollback ke stok.
+### Phase 5: Release (push and release are free; a build not yet tested on the phone must be a pre-release labelled `UNTESTED`)
+- Tag `lineage-24.0-YYYYMMDD-UNOFFICIAL-mblu21`, release the ZIP + images + SHA-256 + release notes + status matrix.
+- Release keys are kept in GitHub Secrets/locally, never in the repository.
+- README: how to build + how to flash + how to roll back to stock.
 
-## 6. Arsitektur repo
+## 6. Repository architecture
 
-| Repo | Isi | Visibilitas (rekomendasi) |
+| Repository | Contents | Visibility (recommendation) |
 |---|---|---|
-| `android_device_meizu_mblu21` | device tree, sepolicy, overlay, fstab, extract script | Publik (Apache-2.0) |
-| `android_vendor_meizu_mblu21` | blob + prebuilt vendor/odm/dlkm image (file >100 MiB sebagai release asset + SHA-256) | Publik (disclaimer: blob milik Meizu/Unisoc, untuk restorasi) |
-| `android_kernel_meizu_mblu21` | kernel path, root images (LKM dan kernel), tutorial root, bukti hardware | Publik (GPL-2.0, wajib) |
-| `lineage_build_mblu21` | local manifest, script build, plan ini | Publik |
+| `android_device_meizu_mblu21` | device tree, sepolicy, overlays, fstab, extract script | Public (Apache-2.0) |
+| `android_vendor_meizu_mblu21` | blobs + prebuilt vendor/odm/dlkm images (files >100 MiB as release assets + SHA-256) | Public (disclaimer: blobs belong to Meizu/Unisoc, for restoration) |
+| `android_kernel_meizu_mblu21` | kernel path, root images (LKM and kernel), root tutorial, hardware evidence | Public (GPL-2.0, mandatory) |
+| `lineage_build_mblu21` | local manifest, build script, this plan | Public |
 
-CI GitHub Actions gratis (4 vCPU, 16 GB, 14 GB SSD) hanya untuk lint/shellcheck/validasi BoardConfig; ROM dibangun di PC lokal.
+Free GitHub Actions CI (4 vCPU, 16 GB, 14 GB SSD) only for lint/shellcheck/BoardConfig validation; the ROM is built on the local PC.
 
-## 7. Risiko & mitigasi
+## 7. Risks & mitigations
 
-| Risiko | Dampak | Mitigasi |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| Android 17 framework menolak vendor Android 13 (FCM 7/VNDK 33) | ROM tidak boot / HAL hilang | Dibuktikan di Gerbang 0 sebelum kerja device tree; cadangan 23.2 |
-| LineageOS 24.0 baru 3 minggu | Bug upstream | Pin ke tanggal sync yang lulus; cadangan 23.2 |
-| IMS/VoLTE Unisoc butuh APK/blob system_ext | VoLTE mati | Identifikasi di Gerbang 0, ekstrak blob IMS stok |
-| Kamera HAL vendor + app kamera | Kamera parsial | Pakai HAL stok; app Aperture; laporkan mode yang tidak jalan |
-| RAM 28 GB untuk build Android 17 | OOM saat build | Swap 32 GB, `-j12`, ccache |
-| Unlock menghapus data / brick | Data hilang | Backup penuh sudah ada; unlock hanya dengan izinmu; rollback via BROM `spd_dump` |
-| Blob dipublikasikan | Takedown repo vendor | Repo vendor terpisah dari device tree; mirror lokal + SHA-256 di `lineage_build_mblu21` agar build bisa dipulihkan |
+| The Android 17 framework rejects the Android 13 vendor (FCM 7/VNDK 33) | ROM does not boot / HALs missing | Proven at Gate 0 before device tree work; 23.2 fallback |
+| LineageOS 24.0 is only 3 weeks old | Upstream bugs | Pin to a sync date that passes; 23.2 fallback |
+| Unisoc IMS/VoLTE needs system_ext APKs/blobs | VoLTE dead | Identify at Gate 0, extract the stock IMS blobs |
+| Vendor camera HAL + camera app | Partial camera | Use the stock HAL; Aperture app; report the modes that do not work |
+| 28 GB RAM for an Android 17 build | OOM during the build | 32 GB swap, `-j12`, ccache |
+| Unlock wipes data / brick | Data lost | A full backup already exists; unlock only with your permission; rollback via BROM `spd_dump` |
+| Blobs published | Vendor repository takedown | Vendor repository separate from the device tree; local mirror + SHA-256 in `lineage_build_mblu21` so the build can be restored |
 
-## 8. Estimasi
+## 8. Estimates
 
-| Milestone | Estimasi |
+| Milestone | Estimate |
 |---|---|
-| Fase 0 (termasuk sync) | 0,5-1 hari |
-| Gerbang 0 GSI | 1 sesi HP |
-| Device tree build pertama | 2-4 hari |
-| First boot P0 | 1-3 sesi HP |
-| P0 + P1 + enforcing | 1-3 minggu; tanpa batas waktu — dikerjakan sampai semua lulus (keputusan Zhafron) |
-| KernelSU (Jalur C) | setelah P0+P1 |
+| Phase 0 (including sync) | 0.5-1 day |
+| Gate 0 GSI | 1 phone session |
+| First device tree build | 2-4 days |
+| First boot P0 | 1-3 phone sessions |
+| P0 + P1 + enforcing | 1-3 weeks; no deadline, worked on until everything passes (Zhafron's decision) |
+| KernelSU (Path C) | after P0+P1 |
 
-## 9. Keputusan Zhafron (2026-10-31)
+## 9. Zhafron's decisions (2026-10-31)
 
-Kartu 6c91d3fe:
+Card 6c91d3fe:
 1. Target **LineageOS 24.0**.
-2. Repo blob/vendor **publik**.
+2. Blob/vendor repository **public**.
 
-Kartu aa32fe5c (aturan main full otonom):
-3. HP: **"jangan dulu sentuh sentuh hp, kan source aja belum dikerjain, fokus ke source build lineageos terbaru"** — tidak ada adb/fastboot/unlock/flash/BROM. Langkah fisik dan status HP harian: "nanti dulu".
-4. SIM tes: **Telkomsel** saja.
-5. Push repo publik dan rilis: **bebas**.
-6. 24.0 gagal di vendor Android 13 → **turun ke 23.2 otomatis** dengan bukti.
-7. Batas waktu: **tidak ada**, kerja sampai semua P0+P1 lulus.
-8. KernelSU: **ya, setelah P0+P1 lulus**.
+Card aa32fe5c (full-autonomy ground rules):
+3. Phone: **"don't touch the phone yet, the source hasn't even been worked on, focus on the source build of the latest LineageOS"** (translated quote): no adb/fastboot/unlock/flash/BROM. Physical steps and daily phone status: "later".
+4. Test SIM: **Telkomsel** only.
+5. Pushing public repositories and releases: **free**.
+6. 24.0 fails on the Android 13 vendor → **drop to 23.2 automatically**, with evidence.
+7. Deadline: **none**, work until every P0+P1 passes.
+8. KernelSU: **yes, after P0+P1 pass**.
 
-## 10. Batas full otonom
+## 10. Full-autonomy limits
 
-- Dilarang: menyentuh HP dalam bentuk apa pun; force-push/history rewrite; menaruh kunci rilis/secret di repo.
-- Bebas: sync, build, membuat dan push repo publik di `github.com/tickernelz`, rilis (pre-release `UNTESTED` sampai ada bukti di HP).
-- Commit memakai identitas Zhafron (`~/.gitconfig`), tanpa trailer `Co-Authored-By`.
+- Forbidden: touching the phone in any way; force-push/history rewrite; putting release keys/secrets in the repository.
+- Free: sync, build, creating and pushing public repositories under `github.com/tickernelz`, releases (pre-release `UNTESTED` until there is evidence on the phone).
+- Commits use Zhafron's identity (`~/.gitconfig`), without a `Co-Authored-By` trailer.
