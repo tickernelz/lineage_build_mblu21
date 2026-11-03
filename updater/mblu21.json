@@ -1,17 +1,17 @@
 [
   {
-    "datetime": 1793700233,
+    "datetime": 1793705684,
     "type": "unofficial",
     "version": "24.0",
     "files": [
       {
-        "filename": "lineage-24.0-20261103-UNOFFICIAL-mblu21-r6.zip",
+        "filename": "lineage-24.0-20261103-UNOFFICIAL-mblu21-r7.zip",
         "os_patch_level": "2026-10-01",
         "os_sdk_level": 37,
-        "ota_property_files": "payload_metadata.bin:3738:79691,payload.bin:3738:1941836723,payload_properties.txt:1941840519:155,apex_info.pb:1768:1474,care_map.pb:3289:402,metadata:69:679,metadata.pb:816:904",
-        "sha256": "556ae3917755c59fe52b639e00067aa4cc3cec54013679fbff579057244df1c1",
-        "size": 1941843954,
-        "url": "https://github.com/tickernelz/lineage_build_mblu21/releases/download/lineage-24.0-20261103-UNOFFICIAL-mblu21-r6/lineage-24.0-20261103-UNOFFICIAL-mblu21-r6.zip"
+        "ota_property_files": "payload_metadata.bin:3738:79691,payload.bin:3738:1941836091,payload_properties.txt:1941839887:155,apex_info.pb:1768:1474,care_map.pb:3289:402,metadata:69:679,metadata.pb:816:904",
+        "sha256": "1c2db04e35f699daf7becf4f365be5c3bd7e4eaa93a373d1b51fb6269bbe7b70",
+        "size": 1941843322,
+        "url": "https://github.com/tickernelz/lineage_build_mblu21/releases/download/lineage-24.0-20261103-UNOFFICIAL-mblu21-r7/lineage-24.0-20261103-UNOFFICIAL-mblu21-r7.zip"
       }
     ]
   }
