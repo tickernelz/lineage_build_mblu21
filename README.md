@@ -2,9 +2,18 @@
 
 Local manifest, build script and static image checks for the unofficial LineageOS 24.0 build of the Meizu mBlu 21.
 
-**Status: untested on hardware.** Releases are pre-releases labelled `UNTESTED` until they are booted on a phone. See [PLAN.md](PLAN.md) for the bring-up plan and the definition of "working".
+**Status: boots and runs daily use on one M416H; the test matrix is partial.** Releases are pre-releases; one that has not been booted on the phone says so in its title. [PLAN.md](PLAN.md) defines "working".
 
-**The 2026-11-02 hardware session showed the build cannot boot as things stand.** This phone's bootloader rejects every `vbmeta` it did not get from Meizu, even with the bootloader unlocked, so a ROM signed with the AOSP test key stops at the logo. The measurements are in [BRINGUP_STATUS_2026-11-02.md](BRINGUP_STATUS_2026-11-02.md) and in [android_kernel_meizu_mblu21/docs/HARDWARE-2026-11-02.md](https://github.com/tickernelz/android_kernel_meizu_mblu21/blob/main/docs/HARDWARE-2026-11-02.md). Rooting that phone does work, through `init_boot`; that lives in the kernel repository.
+| Build | Tested on the phone |
+|---|---|
+| [`lineage-24.0-20261103-UNOFFICIAL-mblu21`](https://github.com/tickernelz/lineage_build_mblu21/releases/tag/lineage-24.0-20261103-UNOFFICIAL-mblu21) (device `7dd4b55`, vendor `e14f366`, this repo `0c2dc99`) | 2026-11-03: boot, display, touch, FBE unlock with a PIN, USB adb, charging, Wi-Fi, Telkomsel LTE data, microphone, rear and front camera photo and video. SELinux is permissive in this build. The release notes carry the full table. |
+| Local build adding device `79d312d` and `0d92969` | 2026-11-03: SELinux enforcing with Wi-Fi, LTE, Bluetooth on and camera working; voice calls with two-way audio and SMS; Volume Down in Android and Lineage Recovery without resetting the phone. Not released on its own. |
+| [`lineage-24.0-20261103-UNOFFICIAL-mblu21-r2`](https://github.com/tickernelz/lineage_build_mblu21/releases/tag/lineage-24.0-20261103-UNOFFICIAL-mblu21-r2) (adds the VoLTE port and the Updater feed) | not booted yet |
+| [`lineage-24.0-20261102-UNOFFICIAL-mblu21`](https://github.com/tickernelz/lineage_build_mblu21/releases/tag/lineage-24.0-20261102-UNOFFICIAL-mblu21) | not booted; superseded by 20261103 |
+
+Not tested on any build yet: Bluetooth pairing, VoLTE, outdoor GPS fix, battery deep sleep, OTA, MTP, fingerprint.
+
+The 2026-11-02 hardware session found that this phone's bootloader rejects every `vbmeta` it did not get from Meizu, even with the bootloader unlocked. Builds since 20261103 therefore keep `boot`, `dtbo` and every `vbmeta*` stock and drop the `avb` flags from the first-stage fstab. The measurements are in [BRINGUP_STATUS_2026-11-02.md](BRINGUP_STATUS_2026-11-02.md) and in [android_kernel_meizu_mblu21/docs/HARDWARE-2026-11-02.md](https://github.com/tickernelz/android_kernel_meizu_mblu21/blob/main/docs/HARDWARE-2026-11-02.md). Root works through `init_boot`; that lives in the kernel repository.
 
 ## Repositories
 

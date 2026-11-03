@@ -1,6 +1,8 @@
 # Flashing LineageOS 24.0 on the Meizu mBlu 21 (M416H)
 
-**Everything here erases data and can leave the phone unbootable.** The image in this repository is built but has never been booted. Take a full partition dump first; the stock restore path in the last section depends on it.
+**Everything here erases data and can leave the phone unbootable.** Take a full partition dump first; the stock restore path in the last section depends on it.
+
+**The flash steps in section 2 predate the first hardware session and do not work on this phone:** its `fastboot` cannot write partitions and its bootloader rejects any `vbmeta` not signed by Meizu. Install from the steps in the release notes of [`lineage-24.0-20261103-UNOFFICIAL-mblu21`](https://github.com/tickernelz/lineage_build_mblu21/releases/tag/lineage-24.0-20261103-UNOFFICIAL-mblu21), the first build that boots (tested 2026-11-03).
 
 All commands run on Linux (Fedora). `adb`, `fastboot` and `spd_dump` must work; the Unisoc download-mode USB ID needs a udev rule:
 
