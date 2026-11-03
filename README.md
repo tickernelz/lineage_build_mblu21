@@ -56,7 +56,7 @@ This repository is laid out as a local manifest directory: `mblu21.xml` sits at 
 ./crave-build.sh
 ```
 
-The command fetches the `vendor.img` release asset and checks every prebuilt image against `images.sha256` before building.
+The command downloads `boot_a.bin` and `vendor_a.img` from the [`mblu21-stock-U01005-20261031`](https://github.com/tickernelz/android_stock_meizu_mblu21/releases/tag/mblu21-stock-U01005-20261031) release and runs `device/meizu/mblu21/extract-files.py` on them before building, which adds `vendor.img` and `kernel` to the vendor tree and checks every proprietary file against its pinned SHA-1.
 
 ## Static checks
 
