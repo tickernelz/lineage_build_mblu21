@@ -54,6 +54,7 @@ Setiap baris butuh bukti (log/screenshot/angka), bukan klaim.
 | P1 | Audio | Speaker, earpiece, mic (rekam + telepon), headset |
 | P1 | Kamera | Belakang + depan: foto, video 1080p, flash |
 | P1 | Sensor | Accelerometer, proximity saat telepon, light, (gyro jika ada) |
+| P1 | Face unlock (stok mendukung) | Enroll selesai, lalu unlock dengan wajah dari layar kunci, dalam mode enforcing |
 | P1 | Fingerprint | Enroll + unlock |
 | P1 | GPS | Fix di luar ruangan < 60 detik |
 | P1 | Baterai | Deep sleep: layar mati idle ≤ 1%/jam selama 8 jam |
