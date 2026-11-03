@@ -30,6 +30,8 @@ The 2026-11-02 hardware session found that this phone's bootloader rejects every
 
 Requirements: about 300 GB free disk for source and `out/`, and about 50 GB of RAM plus swap for the Soong analysis phase. The first complete build (2026-11-02, `-j12`, 16 cores, 62 GB RAM, 96 GB swap) peaked at 43.6 GB RAM + 5.6 GB swap during analysis and took about 3.5 hours of compilation. On a 28 GB RAM WSL host the analysis never finished.
 
+Face unlock needs `patches/frameworks_av-unlisted-hidden-cameras.patch`: the stock face HAL opens camera 30, which the Unisoc camera HAL serves without listing it, and the patch lets cameraserver register the ids in `ro.camera.unlisted_hidden_ids` (set by the device tree) as hidden secure cameras that only system-uid clients can open. Apply it with `git -C frameworks/av apply` before building, and revert it with `git -C frameworks/av checkout -- services/camera/libcameraservice/common` before the next `repo sync`.
+
 That build capped the Soong Go heap with `GOMEMLIMIT`. `soong_build` runs under `env -i`, so `patches/build_soong-gomemlimit.patch` passes `SOONG_GOMEMLIMIT` through; apply it with `git -C build/soong apply` and export `SOONG_GOMEMLIMIT=44GiB` (about 90% of the memory you give the build). It is optional on hosts with more RAM. Revert it with `git -C build/soong checkout -- ui/build/soong.go` before the next `repo sync` or `/opt/crave/resync.sh`, which refuse to update a project with uncommitted changes.
 
 ```
