@@ -4,7 +4,7 @@
 
 **Status:** APPROVED by Zhafron 2026-10-31 (cards 6c91d3fe + aa32fe5c). **Full autonomy in ZHA-4374, destructive: no. The phone is not touched at all until Zhafron opens a phone session himself**; focus: LineageOS 24.0 source build.
 **Supersedes:** `/home/zhafron/re/mblu21/LINEAGEOS_PLAN.md` v1 (ZHA-4374, target LineageOS 21)
-**Owner:** Yanto (RE Specialist) in ZHA-4374 once this plan is approved
+**Implementer:** Yanto (RE Specialist) in ZHA-4374 once this plan is approved
 
 ## 1. What changed from v1 (summary)
 
@@ -115,7 +115,7 @@ Free GitHub Actions CI (4 vCPU, 16 GB, 14 GB SSD) only for lint/shellcheck/Board
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The Android 17 framework rejects the Android 13 vendor (FCM 7/VNDK 33) | ROM does not boot / HALs missing | Proven at Gate 0 before device tree work; 23.2 fallback |
+| The Android 17 framework rejects the Android 13 vendor (FCM 7/VNDK 33) | ROM does not boot / HALs missing | To be proven at Gate 0 before device tree work; 23.2 fallback |
 | LineageOS 24.0 is only 3 weeks old | Upstream bugs | Pin to a sync date that passes; 23.2 fallback |
 | Unisoc IMS/VoLTE needs system_ext APKs/blobs | VoLTE dead | Identify at Gate 0, extract the stock IMS blobs |
 | Vendor camera HAL + camera app | Partial camera | Use the stock HAL; Aperture app; report the modes that do not work |
