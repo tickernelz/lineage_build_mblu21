@@ -61,7 +61,7 @@ DYNAMIC_PARTITIONS = ["system", "system_ext", "product", "vendor", "odm", "vendo
 GROUP_SIZE = 5553258496
 
 STOCK_VENDOR_CMDLINE = "console=ttyS1,115200n8 bootconfig bootconfig"
-EXPECTED_VENDOR_BOOTCONFIG = "androidboot.hardware=ums9230_6h10\nandroidboot.selinux=permissive"
+EXPECTED_VENDOR_BOOTCONFIG = "androidboot.hardware=ums9230_6h10"
 BRINGUP_CMDLINE_FLAGS = ("ignore_loglevel",)
 BRINGUP_BOOTCONFIG_KEYS = ("androidboot.init_fatal_reboot_target",)
 
@@ -189,7 +189,7 @@ def main():
         check("vendor_boot cmdline = stock", vboot.get("vendor command line args") == STOCK_VENDOR_CMDLINE, repr(vboot.get("vendor command line args")))
         with open(os.path.join(tmp, "vendor_boot", "bootconfig"), "rb") as f:
             bootconfig = f.read().decode(errors="replace").strip("\x00\n ")
-        check("vendor_boot bootconfig = stock + selinux permissive", bootconfig == EXPECTED_VENDOR_BOOTCONFIG, repr(bootconfig))
+        check("vendor_boot bootconfig = stock", bootconfig == EXPECTED_VENDOR_BOOTCONFIG, repr(bootconfig))
         bringup_config = [k for k in BRINGUP_BOOTCONFIG_KEYS if k in bootconfig]
         check("vendor_boot bootconfig has no bring-up keys", not bringup_config, ",".join(bringup_config) or "none")
         bringup_cmdline = [f for f in BRINGUP_CMDLINE_FLAGS if f in vboot.get("vendor command line args", "")]
